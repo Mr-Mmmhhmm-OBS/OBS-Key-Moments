@@ -30,7 +30,7 @@ function on_event(event)
 		key_moments = { "", description, "", "00:00:00 Opening" }
 	elseif (event == obs.OBS_FRONTEND_EVENT_STREAMING_STOPPED and mode == "s") or (event == obs.OBS_FRONTEND_EVENT_RECORDING_STOPPED and mode == "r") then
 		print(table.concat(key_moments, "\n"))
-		if prompts then
+		if prompt == true then
 			user32.MessageBoxA(nil, "Tools->Scripts->Script Log\n\nCopy the Key Moments and paste them into the YouTube video description.", "Key Moments", ffi.C.MB_OK)   -- Call C function 'MessageBoxA' from User32
 		end
 	elseif event == obs.OBS_FRONTEND_EVENT_SCENE_CHANGED then
@@ -73,6 +73,10 @@ function script_properties()
 	return props
 end
 
+function script_defaults(settings)
+	obs.obs_data_set_default_bool(settings, "prompt", true)
+end
+
 function script_description()
 	return "Creates a list of 'Key Moment' time-stamps during the event."
 end
@@ -80,7 +84,7 @@ end
 function script_update(settings)
 	mode = obs.obs_data_get_string(settings, "mode")
 	
-	prompt = obs.obs_data_get_bool(setttings, "prompt")
+	prompt = obs.obs_data_get_bool(settings, "prompt")
 
 	description = obs.obs_data_get_string(settings, "description")
 
