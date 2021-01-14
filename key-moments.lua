@@ -36,8 +36,8 @@ function on_event(event)
 	elseif event == obs.OBS_FRONTEND_EVENT_SCENE_CHANGED then
 		local scene = obs.obs_frontend_get_current_scene()
 		local scene_name = obs.obs_source_get_name(scene)
-		for i in pairs(key_scenes) do
-			if scene_name == key_scenes[i] then
+		for _, key_scene in ipairs(key_scenes) do
+			if scene_name == key_scene then
 				local seconds = os.difftime(os.time() - 2, start_time)
 				local timestamp = string.format("%02d", math.floor(seconds / 60 / 60)) .. ":" .. string.format("%02d", math.floor(seconds / 60) % 60) .. ":" .. string.format("%02d", seconds % 60)
 				table.insert(key_moments, timestamp .. " " .. scene_name)
