@@ -1,7 +1,7 @@
 obs = obslua
 description = ""
 start_time = 0
-prompts = true
+prompt = true
 mode = ""
 key_scenes = { }
 key_moments = { }
@@ -55,7 +55,7 @@ function script_properties()
 	obs.obs_property_list_add_string(m, "Streaming", "s")
 	obs.obs_property_list_add_string(m, "Off", "")	
 
-	obs.obs_properties_add_bool(props, "prompts", "Display Prompts")
+	obs.obs_properties_add_bool(props, "prompt", "Display Prompts")
 
 	obs.obs_properties_add_text(props, "description", "Video Description", obs.OBS_TEXT_MULTILINE)
 
@@ -80,7 +80,7 @@ end
 function script_update(settings)
 	mode = obs.obs_data_get_string(settings, "mode")
 	
-	tutorial = obs.obs_data_get_bool(setttings, "prompts")
+	prompt = obs.obs_data_get_bool(setttings, "prompt")
 
 	description = obs.obs_data_get_string(settings, "description")
 
