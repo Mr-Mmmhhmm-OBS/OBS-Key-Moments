@@ -91,7 +91,7 @@ function script_defaults(settings)
 end
 
 function script_description()
-	return "Creates a list of 'Key Moment' time-stamps during the event."
+	return "Creates a list of 'Key Moment' time-stamps during the event.\n\nMade by Andrew Carbert"
 end
 
 function script_update(settings)
