@@ -27,21 +27,34 @@ int MessageBoxA(HWND, LPCSTR, LPCSTR, UINT);
 function on_event(event)
 	if (event == obs.OBS_FRONTEND_EVENT_STREAMING_STARTED and mode == "s") or (event == obs.OBS_FRONTEND_EVENT_RECORDING_STARTED and mode == "r") then
 		start_time = os.time()
-		key_moments = { "", description, "", "00:00:00 Opening" }
-	elseif (event == obs.OBS_FRONTEND_EVENT_STREAMING_STOPPED and mode == "s") or (event == obs.OBS_FRONTEND_EVENT_RECORDING_STOPPED and mode == "r") then
+		key_moments = {{}, {description}, {}, {"00:00:00","Opening"}}
+	elseif start_time > 0 and ((event == obs.OBS_FRONTEND_EVENT_STREAMING_STOPPED and mode == "s") or (event == obs.OBS_FRONTEND_EVENT_RECORDING_STOPPED and mode == "r")) then
+		for i, item in ipairs(key_moments) do
+			key_moments[i] = table.concat(item, " ")
+		end
 		print(table.concat(key_moments, "\n"))
+		key_moments = { }
+		start_time = 0
 		if prompt == true then
 			user32.MessageBoxA(nil, "Tools->Scripts->Script Log\n\nCopy the Key Moments and paste them into the YouTube video description.", "Key Moments", ffi.C.MB_OK)   -- Call C function 'MessageBoxA' from User32
 		end
-	elseif event == obs.OBS_FRONTEND_EVENT_SCENE_CHANGED then
+	elseif event == obs.OBS_FRONTEND_EVENT_SCENE_CHANGED and start_time > 0 then
 		local scene = obs.obs_frontend_get_current_scene()
 		local scene_name = obs.obs_source_get_name(scene)
-		for _, key_scene in ipairs(key_scenes) do
-			if scene_name == key_scene then
-				local seconds = os.difftime(os.time() - 2, start_time)
-				local timestamp = string.format("%02d", math.floor(seconds / 60 / 60)) .. ":" .. string.format("%02d", math.floor(seconds / 60) % 60) .. ":" .. string.format("%02d", seconds % 60)
-				table.insert(key_moments, timestamp .. " " .. scene_name)
-				break
+		if table.getn(key_moments) > 0 and key_moments[table.maxn(key_moments)][2] ~= scene_name then
+			for _, key_scene in ipairs(key_scenes) do
+				if scene_name == key_scene then
+					local delta = os.difftime(os.time() - 2, start_time)
+					
+					local hours = string.format("%02d", math.floor(delta / 60 / 60))
+					local minutes = string.format("%02d", math.floor(delta / 60) % 60)
+					local seconds = string.format("%02d", delta % 60)
+					
+					local timestamp = hours .. ":" .. minutes .. ":" .. seconds
+					
+					table.insert(key_moments, {timestamp, scene_name})
+					break
+				end
 			end
 		end
 	end
