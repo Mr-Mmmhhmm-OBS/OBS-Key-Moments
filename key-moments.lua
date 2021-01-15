@@ -46,11 +46,11 @@ function on_event(event)
 				if scene_name == key_scene then
 					local delta = os.difftime(os.time() - 2, start_time)
 					
-					local hours = string.format("%02d", math.floor(delta / 60 / 60))
-					local minutes = string.format("%02d", math.floor(delta / 60) % 60)
-					local seconds = string.format("%02d", delta % 60)
+					local hh = math.floor(delta / 60 / 60)
+					local mm = math.floor(delta / 60) % 60
+					local ss = delta % 60
 					
-					local timestamp = hours .. ":" .. minutes .. ":" .. seconds
+					local timestamp = string.format("%02d:%02d:%02d", hh, mm, ss)
 					
 					table.insert(key_moments, {timestamp, scene_name})
 					break
