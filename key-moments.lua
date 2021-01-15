@@ -2,6 +2,8 @@ obs = obslua
 description = ""
 start_time = 0
 prompt = true
+key_moment_lead_in = 2
+min_key_moment_duration = 60
 mode = ""
 key_scenes = { }
 key_moments = { }
@@ -15,23 +17,46 @@ enum{
     MB_OK = 0x00000000L,
     MB_ICONINFORMATION = 0x00000040L
 };
-
 typedef void* HANDLE;
 typedef HANDLE HWND;
 typedef const char* LPCSTR;
 typedef unsigned UINT;
-
 int MessageBoxA(HWND, LPCSTR, LPCSTR, UINT);
 ]]) -- Define C -> Lua interpretation
 
 function on_event(event)
 	if (event == obs.OBS_FRONTEND_EVENT_STREAMING_STARTED and mode == "s") or (event == obs.OBS_FRONTEND_EVENT_RECORDING_STARTED and mode == "r") then
 		start_time = os.time()
-		key_moments = {{}, {description}, {}, {"00:00:00","Opening"}}
+		key_moments = { { }, { description }, { }, { 0, "Opening" } }
 	elseif start_time > 0 and ((event == obs.OBS_FRONTEND_EVENT_STREAMING_STOPPED and mode == "s") or (event == obs.OBS_FRONTEND_EVENT_RECORDING_STOPPED and mode == "r")) then
-		for i, item in ipairs(key_moments) do
-			key_moments[i] = table.concat(item, " ")
+		-- Remove duplicate key-moments
+		for i in pairs(key_moments) do
+			if table.getn(key_moments[i]) == 2 and table.getn(key_moments[i-1]) == 2 and key_moments[i-1][2] == key_moments[i][2] then
+				print("remove " .. i)
+				table.remove(key_moments, i)
+			end
 		end
+	
+		-- Turn each key-moment into a string
+		for i, item in ipairs(key_moments) do
+			if table.getn(item) == 2 then
+				local delta = item[1]
+				if item[1] > key_moment_lead_in then
+					delta = item[1] - key_moment_lead_in
+				end
+
+				local hh = math.floor(delta / 60 / 60)
+				local mm = math.floor(delta / 60) % 60
+				local ss = delta % 60
+
+				key_moments[i] = string.format("%02d:%02d:%02d", hh, mm, ss) .. " " .. item[2]
+			elseif table.getn(item) == 1 then
+				key_moments[i] = item[1]
+			else
+				key_moments[i] = ""
+			end
+		end
+
 		print(table.concat(key_moments, "\n"))
 		key_moments = { }
 		start_time = 0
@@ -44,15 +69,14 @@ function on_event(event)
 		if table.getn(key_moments) > 0 and key_moments[table.maxn(key_moments)][2] ~= scene_name then
 			for _, key_scene in ipairs(key_scenes) do
 				if scene_name == key_scene then
-					local delta = os.difftime(os.time() - 2, start_time)
-					
-					local hh = math.floor(delta / 60 / 60)
-					local mm = math.floor(delta / 60) % 60
-					local ss = delta % 60
-					
-					local timestamp = string.format("%02d:%02d:%02d", hh, mm, ss)
-					
-					table.insert(key_moments, {timestamp, scene_name})
+					local timestamp = os.difftime(os.time(), start_time)
+					if os.difftime(timestamp, key_moments[table.maxn(key_moments)][1]) < min_key_moment_duration then
+						-- Update previous 'key moment' to this scene name
+						key_moments[table.maxn(key_moments)][2] = scene_name
+					else
+						-- Insert new 'key moment'
+						table.insert(key_moments, { timestamp, scene_name} )
+					end
 					break
 				end
 			end
@@ -69,6 +93,10 @@ function script_properties()
 	obs.obs_property_list_add_string(m, "Off", "")	
 
 	obs.obs_properties_add_bool(props, "prompt", "Display Prompts")
+
+	obs.obs_properties_add_int_slider(props, "key_moment_lead_in", "Key Moment Lead In", 0, 10, 1)
+
+	obs.obs_properties_add_int_slider(props, "min_key_moment_duration", "Min Key-Moment Duration", 10, 300, 10)
 
 	obs.obs_properties_add_text(props, "description", "Video Description", obs.OBS_TEXT_MULTILINE)
 
@@ -88,6 +116,8 @@ end
 
 function script_defaults(settings)
 	obs.obs_data_set_default_bool(settings, "prompt", true)
+	obs.obs_data_set_default_int(settings, "key_moment_lead_in", 2)
+	obs.obs_data_set_default_int(settings, "min_key_moment_duration", 60)
 end
 
 function script_description()
@@ -98,6 +128,10 @@ function script_update(settings)
 	mode = obs.obs_data_get_string(settings, "mode")
 	
 	prompt = obs.obs_data_get_bool(settings, "prompt")
+
+	key_moment_lead_in = obs.obs_data_get_int(settings, "key_moment_lead_in")
+
+	min_key_moment_duration = obs.obs_data_get_int(settings, "min_key_moment_duration")
 
 	description = obs.obs_data_get_string(settings, "description")
 
