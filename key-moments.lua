@@ -32,7 +32,6 @@ function on_event(event)
 		-- Remove duplicate key-moments
 		for i in pairs(key_moments) do
 			if table.getn(key_moments[i]) == 2 and table.getn(key_moments[i-1]) == 2 and key_moments[i-1][2] == key_moments[i][2] then
-				print("remove " .. i)
 				table.remove(key_moments, i)
 			end
 		end
@@ -56,8 +55,6 @@ function on_event(event)
 				key_moments[i] = ""
 			end
 		end
-
-		print(table.concat(key_moments, "\n"))
 		key_moments = { }
 		start_time = 0
 		if prompt == true then
@@ -115,9 +112,9 @@ function script_properties()
 end
 
 function script_defaults(settings)
-	obs.obs_data_set_default_bool(settings, "prompt", true)
-	obs.obs_data_set_default_int(settings, "key_moment_lead_in", 2)
-	obs.obs_data_set_default_int(settings, "min_key_moment_duration", 60)
+	obs.obs_data_set_default_bool(settings, "prompt", prompt)
+	obs.obs_data_set_default_int(settings, "key_moment_lead_in", key_moment_lead_in)
+	obs.obs_data_set_default_int(settings, "min_key_moment_duration", min_key_moment_duration)
 end
 
 function script_description()
@@ -130,7 +127,6 @@ function script_update(settings)
 	prompt = obs.obs_data_get_bool(settings, "prompt")
 
 	key_moment_lead_in = obs.obs_data_get_int(settings, "key_moment_lead_in")
-
 	min_key_moment_duration = obs.obs_data_get_int(settings, "min_key_moment_duration")
 
 	description = obs.obs_data_get_string(settings, "description")
