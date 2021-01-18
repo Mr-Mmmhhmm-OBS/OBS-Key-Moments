@@ -8,7 +8,6 @@ min_key_moment_duration = 60
 
 description = ""
 key_moment_names = { }
-first_key_moment = ""
 key_scenes = { }
 key_moments = { }
 
@@ -31,7 +30,7 @@ int MessageBoxA(HWND, LPCSTR, LPCSTR, UINT);
 function on_event(event)
 	if (event == obs.OBS_FRONTEND_EVENT_STREAMING_STARTED and mode == "s") or (event == obs.OBS_FRONTEND_EVENT_RECORDING_STARTED and mode == "r") then
 		start_time = os.time()
-		key_moments = { { }, { description }, { }, { 0, first_key_moment } }
+		key_moments = { { }, { description }, { }, { 0, key_moment_names[1] } }
 	elseif start_time > 0 and ((event == obs.OBS_FRONTEND_EVENT_STREAMING_STOPPED and mode == "s") or (event == obs.OBS_FRONTEND_EVENT_RECORDING_STOPPED and mode == "r")) then
 		-- Remove duplicate key-moments
 		for i in pairs(key_moments) do
@@ -68,7 +67,7 @@ function on_event(event)
 	elseif event == obs.OBS_FRONTEND_EVENT_SCENE_CHANGED and start_time > 0 then
 		local scene = obs.obs_frontend_get_current_scene()
 		local scene_name = obs.obs_source_get_name(scene)
-		if table.getn(key_moments) > 0 and key_moments[table.maxn(key_moments)][2] ~= key_scenes[scene_name] then
+		if table.getn(key_moments) > 0 and key_scenes[scene_name] ~= "" and key_moments[table.maxn(key_moments)][2] ~= key_scenes[scene_name] then
 			for key_scene, key_moment in pairs(key_scenes) do
 				if scene_name == key_scene then
 					local timestamp = os.difftime(os.time(), start_time)
@@ -97,9 +96,6 @@ local function has_value (tab, val)
 end
 
 function key_moment_names_modified(props, property, settings)
-	local p = obs.obs_properties_get(props, "first_key_moment")
-	add_key_moment_list(p, true)
-
 	local scene_names = obs.obs_frontend_get_scene_names()
 	if scene_names ~= nil then
 		for _, scene_name in ipairs(scene_names) do
@@ -138,9 +134,6 @@ function script_properties()
 
 	local p = obs.obs_properties_add_editable_list(props, "key_moment_names", "Key Moments", obs.OBS_EDITABLE_LIST_TYPE_STRINGS, nil, nil)
 	obs.obs_property_set_modified_callback(p, key_moment_names_modified)
-
-	local p = obs.obs_properties_add_list(props, "first_key_moment", "First Key Momement", obs.OBS_COMBO_TYPE_LIST, obs.OBS_COMBO_FORMAT_STRING)
-	add_key_moment_list(p, true)
 
 	local grp = obs.obs_properties_create()
 	local scene_names = obs.obs_frontend_get_scene_names()
@@ -186,8 +179,6 @@ function script_update(settings)
 		end
 	end
 	obs.obs_data_array_release(key_moment_name_array)
-
-	first_key_moment = obs.obs_data_get_string(settings, "first_key_moment")
 
 	key_scenes = { }
 	local scene_names = obs.obs_frontend_get_scene_names()
