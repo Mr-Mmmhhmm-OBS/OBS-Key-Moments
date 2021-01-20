@@ -1,5 +1,7 @@
 obs = obslua
 
+local version=1.2
+
 streaming_output_options = { "--Disabled--", "Console", "YouTube" }
 streaming_output = streaming_output_options[2]
 streaming = { start_time=0, key_moments = { } }
@@ -212,7 +214,7 @@ function script_defaults(settings)
 end
 
 function script_description()
-	return "Creates a list of 'Key Moment' time-stamps during the event.\nv1.1"
+	return "Creates a list of 'Key Moment' time-stamps during the event.\nv" .. version
 end
 
 function script_update(settings)
