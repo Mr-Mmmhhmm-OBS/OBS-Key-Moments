@@ -3,7 +3,7 @@ import time
 import math
 import pyperclip as clipboard
 
-version=1.2
+version=2.0
 
 streaming_output_options = [ "--Disabled--", "Console" ] # , "YouTube"
 streaming_output = streaming_output_options[1]
