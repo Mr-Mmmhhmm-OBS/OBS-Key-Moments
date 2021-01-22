@@ -12,8 +12,7 @@ streaming = None
 
 recording_output = ( { "name":"Copy To Clipboard", "value":False }, { "name":"Console", "value":True }, ) # , "File"
 recording = None
-copy_to_clipboard_options = ["--Disabled--", "Streamed Moments", "Recorded Moments"]
-copy_to_clipboard = copy_to_clipboard_options[0]
+
 key_moment_lead_in = 2
 min_key_moment_duration = 60
 
@@ -70,7 +69,7 @@ def on_event(event):
 		message = compile_key_momemnts(streaming)
 		print(message)
 		streaming = None
-		if copy_to_clipboard == copy_to_clipboard_options[1]:
+		if streaming_ouput[0]['value']:
 			clipboard.copy(message)
 			toaster.show_toast("OBS Key Moments","The key-moments from your stream have been copied to your clipboard.",duration=5,threaded=True,icon_path=script_path()+"/obs-icon-small.ico")
 	elif event == obs.OBS_FRONTEND_EVENT_RECORDING_STOPPED and recording != None:
@@ -79,7 +78,7 @@ def on_event(event):
 		print(message)
 		clipboard.copy(message)
 		recording = None
-		if copy_to_clipboard == copy_to_clipboard_options[2]:
+		if recording_ouput[0]['value']:
 			clipboard.copy(message)
 			toaster.show_toast("OBS Key Moments","The key-moments from your recording have been copied to your clipboard.",duration=5,threaded=True,icon_path=script_path()+"/obs-icon-small.ico")
 	elif event == obs.OBS_FRONTEND_EVENT_SCENE_CHANGED and (streaming != None or recording != None):
@@ -125,7 +124,6 @@ def on_property_modified(props, property, settings):
 	obs.obs_property_set_enabled(obs.obs_properties_get(props, "recording_output_0"), not streaming_output[0]['value'])
 	obs.obs_property_set_enabled(obs.obs_properties_get(props, "streaming_output_0"), not recording_output[0]['value'])
 
-	obs.obs_property_set_enabled(obs.obs_properties_get(props, "copy_to_clipboard"), has_output)
 	obs.obs_property_set_enabled(obs.obs_properties_get(props, "key_moment_lead_in"), has_output)
 	obs.obs_property_set_enabled(obs.obs_properties_get(props, "min_key_moment_duration"), has_output)
 	obs.obs_property_set_enabled(obs.obs_properties_get(props, "description"), has_output)
@@ -148,11 +146,6 @@ def script_properties():
 		p = obs.obs_properties_add_bool(group, 'recording_output_' + str(i), option['name'])
 		obs.obs_property_set_modified_callback(p, on_property_modified)
 	obs.obs_properties_add_group(props, "recording_output", "Recording Output", obs.OBS_GROUP_NORMAL, group)
-
-	p = obs.obs_properties_add_list(props, "copy_to_clipboard", "Copy To Clipboard", obs.OBS_COMBO_TYPE_LIST, obs.OBS_COMBO_FORMAT_STRING)
-	obs.obs_property_set_enabled(p, has_output)
-	for option in copy_to_clipboard_options:
-		obs.obs_property_list_add_string(p, option, option)
 
 	p = obs.obs_properties_add_int_slider(props, "key_moment_lead_in", "Key Moment Lead In", 0, 10, 1)
 	obs.obs_property_set_enabled(p, has_output)
@@ -185,7 +178,6 @@ def script_defaults(settings):
 	for i, option in enumerate(recording_output):
 		obs.obs_data_set_default_bool(settings, "recording_output_" + str(i), option['value'])
 
-	obs.obs_data_set_default_string(settings, "copy_to_clipboard", copy_to_clipboard)
 	obs.obs_data_set_default_int(settings, "key_moment_lead_in", key_moment_lead_in)
 	obs.obs_data_set_default_int(settings, "min_key_moment_duration", min_key_moment_duration)
 
@@ -200,9 +192,6 @@ def script_update(settings):
 	global recording_output
 	for i, option in enumerate(recording_output):
 		recording_output[i]['value'] = obs.obs_data_get_bool(settings, "recording_output_" + str(i))
-	
-	global copy_to_clipboard
-	copy_to_clipboard = obs.obs_data_get_string(settings, "copy_to_clipboard")
 
 	global key_moment_lead_in
 	key_moment_lead_in = obs.obs_data_get_int(settings, "key_moment_lead_in")
