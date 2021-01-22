@@ -37,7 +37,7 @@ def compile_key_momemnts(obj):
 			mm = math.floor(delta / 60 % 60)
 			ss = math.floor(delta % 60)
 
-			obj['key_moments'][i] = "{:02}:{:02}:{:02} {}".format(hh, mm, ss, item[1])
+			obj['key_moments'][i] = "{:02d}:{:02d}:{:02d} {}".format(hh, mm, ss, item[1])
 		elif len(item) == 1:
 			obj['key_moments'][i] = item[0]
 		else:
@@ -57,30 +57,29 @@ def update_key_moments(obj, scene_name):
 					obj['key_moments'].append([ timestamp, key_moment ])
 				break
 
+def execute_output(output_options, type, message):
+	if output_options[0]['value']:
+		clipboard.copy(message)
+		toaster.show_toast("OBS Key Moments","The key-moments from your " + type.lower() + " have been copied to your clipboard.",duration=5,threaded=True,icon_path=script_path()+"/obs-icon-small.ico")
+	if output_options[1]['value']:
+		print("\n" + type + " Key Moments\n")
+		print(message)
+
 def on_event(event):
 	global streaming
 	global recording
-	if event == obs.OBS_FRONTEND_EVENT_STREAMING_STARTED and streaming_output != streaming_output_options[0]:
-		streaming = { 'start_time': time.time(), 'key_moments': [ [], [ description ], [], [ 0, key_moment_names[0] ] ] }
-	elif event == obs.OBS_FRONTEND_EVENT_RECORDING_STARTED and recording_output != recording_output_options[0]:
-		recording = { 'start_time': time.time(), 'key_moments': [ [], [ description ], [], [ 0, key_moment_names[0] ] ] }
+	if event == obs.OBS_FRONTEND_EVENT_STREAMING_STARTED and get_has_output(streaming_output):
+		streaming = { 'start_time': time.time(), 'key_moments': [ [ description ], [], [ 0, key_moment_names[0] ] ] }
+	elif event == obs.OBS_FRONTEND_EVENT_RECORDING_STARTED and get_has_output(recording_output):
+		recording = { 'start_time': time.time(), 'key_moments': [ [ description ], [], [ 0, key_moment_names[0] ] ] }
 	elif event == obs.OBS_FRONTEND_EVENT_STREAMING_STOPPED and streaming != None:
-		print("\nStreaming Key Moments")
 		message = compile_key_momemnts(streaming)
-		print(message)
+		execute_output(streaming_output, "Streaming", message)
 		streaming = None
-		if streaming_ouput[0]['value']:
-			clipboard.copy(message)
-			toaster.show_toast("OBS Key Moments","The key-moments from your stream have been copied to your clipboard.",duration=5,threaded=True,icon_path=script_path()+"/obs-icon-small.ico")
 	elif event == obs.OBS_FRONTEND_EVENT_RECORDING_STOPPED and recording != None:
-		print("\nRecording Key Moments")
 		message = compile_key_momemnts(recording)
-		print(message)
-		clipboard.copy(message)
+		execute_output(recording_output, "Recording", message)
 		recording = None
-		if recording_ouput[0]['value']:
-			clipboard.copy(message)
-			toaster.show_toast("OBS Key Moments","The key-moments from your recording have been copied to your clipboard.",duration=5,threaded=True,icon_path=script_path()+"/obs-icon-small.ico")
 	elif event == obs.OBS_FRONTEND_EVENT_SCENE_CHANGED and (streaming != None or recording != None):
 		scene = obs.obs_frontend_get_current_scene()
 		scene_name = obs.obs_source_get_name(scene)
@@ -113,7 +112,6 @@ def add_key_moment_list(p, required):
 
 def get_has_output(options):
 	for option in options:
-		print(option)
 		if option['value'] == True:
 			return True
 	return False
@@ -132,7 +130,7 @@ def on_property_modified(props, property, settings):
 	return True
 
 def script_properties():
-	has_output = True #streaming_output != streaming_output_options[0] or recording_output != recording_output_options[0]
+	has_output = get_has_output(streaming_output) or get_has_output(recording_output)
 	props = obs.obs_properties_create()
 
 	group = obs.obs_properties_create()
