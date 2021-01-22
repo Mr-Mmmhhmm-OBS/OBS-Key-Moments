@@ -1,24 +1,62 @@
 import obspython as obs
 import time
 import math
+from datetime import datetime
 import pyperclip as clipboard
 from win10toast import ToastNotifier
 toaster = ToastNotifier()
 
+# -*- coding: utf-8 -*-
+# Sample Python code for youtube.liveStreams.update
+# See instructions for running these code samples locally:
+# https://developers.google.com/explorer-help/guides/code_samples#python
+import os
+import google_auth_oauthlib.flow
+import googleapiclient.discovery
+import googleapiclient.errors
+
+scopes = ["https://www.googleapis.com/auth/youtube"]
+
 version=2.1
 
-streaming_output = ( {"name":"Copy To Clipboard", "value":True }, {"name":"Console", "value":True }, ) # , "YouTube"
+OUTPUT_OPTION_CLIPBOARD = "Copy To Clipboard"
+OUTPUT_OPTION_CONSOLE = "Console"
+OUTPUT_OPTION_FILE = "Save To File"
+
+YOUTUBE_DEVELOPER_KEY = "99730038784-1esj3gnhrebbldietubd6hdcklss9aqf.apps.googleusercontent.com"
+
+streaming_output = ( {"name":OUTPUT_OPTION_CLIPBOARD, "value":True }, {"name":OUTPUT_OPTION_CONSOLE, "value":True }, {"name":OUTPUT_OPTION_FILE, "value":True }, )
 streaming = None
 
-recording_output = ( { "name":"Copy To Clipboard", "value":False }, { "name":"Console", "value":True }, ) # , "File"
+recording_output = ( { "name":OUTPUT_OPTION_CLIPBOARD, "value":False }, { "name":OUTPUT_OPTION_CONSOLE, "value":True }, {"name":OUTPUT_OPTION_FILE, "value":True }, ) # , "File"
 recording = None
+
+file_folder = None
+file_name = "%Y/%b %d"
 
 key_moment_lead_in = 2
 min_key_moment_duration = 60
 
 description = ""
-key_moment_names = []
+key_moment_names = [ "Opening", "Closing" ]
 key_scenes = { }
+
+def make_toast(message):
+	toaster.show_toast("OBS Key Moments", message, duration=10, threaded=True, icon_path=script_path()+"/obs-icon-small.ico")
+
+def save_to_file(message):
+	if file_folder != None and len(file_name) > 0:
+		path = file_folder + "/" + datetime.now().strftime(file_name) + ".txt"
+		if not os.path.exists(os.path.dirname(path)):
+			try:
+				os.makedirs(os.path.dirname(path))
+			except OSError as exc: # Guard against race condition
+				if exc.errno != errno.EEXIST:
+					raise
+		with open(path, "a+") as f:
+			f.write("\n" + type + " Key Moments---------------\n" + message)
+	else:
+		print("Invalid Save Location!")
 
 def compile_key_momemnts(obj):
 	# Remove duplicate key-moments
@@ -58,20 +96,30 @@ def update_key_moments(obj, scene_name):
 				break
 
 def execute_output(output_options, type, message):
-	if output_options[0]['value']:
-		clipboard.copy(message)
-		toaster.show_toast("OBS Key Moments","The key-moments from your " + type.lower() + " have been copied to your clipboard.",duration=5,threaded=True,icon_path=script_path()+"/obs-icon-small.ico")
-	if output_options[1]['value']:
-		print("\n" + type + " Key Moments\n")
-		print(message)
-
+	for option in output_options:
+		if option['value']:
+			if option['name'] == OUTPUT_OPTION_CLIPBOARD:
+				clipboard.copy(message)
+				make_toast("The key-moments from your " + type.lower() + " have been copied to your clipboard.")
+			if option['name'] == OUTPUT_OPTION_CONSOLE:
+				print("\n" + type + " Key Moments\n")
+				print(message)
+			if option['name'] == OUTPUT_OPTION_FILE:
+				save_to_file(message)
+				
 def on_event(event):
 	global streaming
 	global recording
 	if event == obs.OBS_FRONTEND_EVENT_STREAMING_STARTED and get_has_output(streaming_output):
-		streaming = { 'start_time': time.time(), 'key_moments': [ [ description ], [], [ 0, key_moment_names[0] ] ] }
+		if len(key_moment_names) == 0:
+			make_toast("Warning!\n\nYou cannot record key-moments without items in the key moment name list!")
+		else:
+			streaming = { 'start_time': time.time(), 'key_moments': [ [ description ], [], [ 0, key_moment_names[0] ] ] }
 	elif event == obs.OBS_FRONTEND_EVENT_RECORDING_STARTED and get_has_output(recording_output):
-		recording = { 'start_time': time.time(), 'key_moments': [ [ description ], [], [ 0, key_moment_names[0] ] ] }
+		if len(key_moment_names) == 0:
+			make_toast("Warning!\n\nYou cannot record key-moments without items in the key moment name list!")
+		else:		
+			recording = { 'start_time': time.time(), 'key_moments': [ [ description ], [], [ 0, key_moment_names[0] ] ] }
 	elif event == obs.OBS_FRONTEND_EVENT_STREAMING_STOPPED and streaming != None:
 		message = compile_key_momemnts(streaming)
 		execute_output(streaming_output, "Streaming", message)
@@ -118,10 +166,12 @@ def get_has_output(options):
 
 def on_property_modified(props, property, settings):
 	has_output = get_has_output(streaming_output) or get_has_output(recording_output)
-	# TODO: Code propper exclusivity
+	# TODO: Code proper exclusivity
 	obs.obs_property_set_enabled(obs.obs_properties_get(props, "recording_output_0"), not streaming_output[0]['value'])
 	obs.obs_property_set_enabled(obs.obs_properties_get(props, "streaming_output_0"), not recording_output[0]['value'])
 
+	obs.obs_property_set_visible(obs.obs_properties_get(props, "file_folder"), streaming_output[2]['value'] or recording_output[2]['value'])
+	obs.obs_property_set_visible(obs.obs_properties_get(props, "file_name"), streaming_output[2]['value'] or recording_output[2]['value'])
 	obs.obs_property_set_enabled(obs.obs_properties_get(props, "key_moment_lead_in"), has_output)
 	obs.obs_property_set_enabled(obs.obs_properties_get(props, "min_key_moment_duration"), has_output)
 	obs.obs_property_set_enabled(obs.obs_properties_get(props, "description"), has_output)
@@ -145,13 +195,16 @@ def script_properties():
 		obs.obs_property_set_modified_callback(p, on_property_modified)
 	obs.obs_properties_add_group(props, "recording_output", "Recording Output", obs.OBS_GROUP_NORMAL, group)
 
+	p = obs.obs_properties_add_path(props, "file_folder", "File Folder", obs.OBS_PATH_DIRECTORY, None, None)
+	obs.obs_property_set_visible(p, streaming_output[2]['value'] or recording_output[2]['value'])
+
+	p = obs.obs_properties_add_text(props, "file_name", "File Name", obs.OBS_TEXT_DEFAULT)
+	obs.obs_property_set_visible(p, streaming_output[2]['value'] or recording_output[2]['value'])
+
 	p = obs.obs_properties_add_int_slider(props, "key_moment_lead_in", "Key Moment Lead In", 0, 10, 1)
 	obs.obs_property_set_enabled(p, has_output)
 
 	p = obs.obs_properties_add_int_slider(props, "min_key_moment_duration", "Min Key-Moment Duration", 1, 300, 10)
-	obs.obs_property_set_enabled(p, has_output)
-
-	p = obs.obs_properties_add_text(props, "description", "Video Description", obs.OBS_TEXT_MULTILINE)
 	obs.obs_property_set_enabled(p, has_output)
 
 	p = obs.obs_properties_add_editable_list(props, "key_moment_names", "Key Moments", obs.OBS_EDITABLE_LIST_TYPE_STRINGS, None, None)
@@ -167,6 +220,9 @@ def script_properties():
 			add_key_moment_list(p, False)
 	obs.obs_properties_add_group(props, "key_scenes", "Key Scenes", obs.OBS_GROUP_NORMAL, grp)
 
+	p = obs.obs_properties_add_text(props, "description", "Video Description", obs.OBS_TEXT_MULTILINE)
+	obs.obs_property_set_enabled(p, has_output)
+
 	return props
 
 def script_defaults(settings):
@@ -175,7 +231,9 @@ def script_defaults(settings):
 
 	for i, option in enumerate(recording_output):
 		obs.obs_data_set_default_bool(settings, "recording_output_" + str(i), option['value'])
-
+	
+	obs.obs_data_set_default_string(settings, "file_name", file_name)
+	
 	obs.obs_data_set_default_int(settings, "key_moment_lead_in", key_moment_lead_in)
 	obs.obs_data_set_default_int(settings, "min_key_moment_duration", min_key_moment_duration)
 
@@ -190,6 +248,12 @@ def script_update(settings):
 	global recording_output
 	for i, option in enumerate(recording_output):
 		recording_output[i]['value'] = obs.obs_data_get_bool(settings, "recording_output_" + str(i))
+
+	global file_folder
+	file_folder = obs.obs_data_get_string(settings, "file_folder")
+
+	global file_name
+	file_name = obs.obs_data_get_string(settings, "file_name")
 
 	global key_moment_lead_in
 	key_moment_lead_in = obs.obs_data_get_int(settings, "key_moment_lead_in")
