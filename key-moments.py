@@ -2,15 +2,15 @@ import obspython as obs
 import time
 import math
 import pyperclip as clipboard
+from win10toast import ToastNotifier
+toaster = ToastNotifier()
 
 version=2.0
 
-streaming_output_options = [ "--Disabled--", "Console" ] # , "YouTube"
-streaming_output = streaming_output_options[1]
+streaming_output = ( {"name":"Copy To Clipboard", "value":True }, {"name":"Console", "value":True }, ) # , "YouTube"
 streaming = None
 
-recording_output_options = [ "--Disabled--", "Console" ] # , "File"
-recording_output = recording_output_options[1]
+recording_output = ( { "name":"Copy To Clipboard", "value":False }, { "name":"Console", "value":True }, ) # , "File"
 recording = None
 copy_to_clipboard_options = ["--Disabled--", "Streamed Moments", "Recorded Moments"]
 copy_to_clipboard = copy_to_clipboard_options[0]
@@ -72,6 +72,7 @@ def on_event(event):
 		streaming = None
 		if copy_to_clipboard == copy_to_clipboard_options[1]:
 			clipboard.copy(message)
+			toaster.show_toast("OBS Key Moments","The key-moments from your stream have been copied to your clipboard.",duration=5,threaded=True,icon_path=script_path()+"/obs-icon-small.ico")
 	elif event == obs.OBS_FRONTEND_EVENT_RECORDING_STOPPED and recording != None:
 		print("\nRecording Key Moments")
 		message = compile_key_momemnts(recording)
@@ -80,6 +81,7 @@ def on_event(event):
 		recording = None
 		if copy_to_clipboard == copy_to_clipboard_options[2]:
 			clipboard.copy(message)
+			toaster.show_toast("OBS Key Moments","The key-moments from your recording have been copied to your clipboard.",duration=5,threaded=True,icon_path=script_path()+"/obs-icon-small.ico")
 	elif event == obs.OBS_FRONTEND_EVENT_SCENE_CHANGED and (streaming != None or recording != None):
 		scene = obs.obs_frontend_get_current_scene()
 		scene_name = obs.obs_source_get_name(scene)
@@ -110,8 +112,18 @@ def add_key_moment_list(p, required):
 	for key_moment_name in key_moment_names:
 		obs.obs_property_list_add_string(p, key_moment_name, key_moment_name)
 
+def get_has_output(options):
+	for option in options:
+		print(option)
+		if option['value'] == True:
+			return True
+	return False
+
 def on_property_modified(props, property, settings):
-	has_output = streaming_output != streaming_output_options[0] or recording_output != recording_output_options[0]
+	has_output = get_has_output(streaming_output) or get_has_output(recording_output)
+	obs.obs_property_set_enabled(obs.obs_properties_get(props, "recording_output_0"), not streaming_output[0]['value'])
+	obs.obs_property_set_enabled(obs.obs_properties_get(props, "streaming_output_0"), not recording_output[0]['value'])
+
 	obs.obs_property_set_enabled(obs.obs_properties_get(props, "copy_to_clipboard"), has_output)
 	obs.obs_property_set_enabled(obs.obs_properties_get(props, "key_moment_lead_in"), has_output)
 	obs.obs_property_set_enabled(obs.obs_properties_get(props, "min_key_moment_duration"), has_output)
@@ -121,18 +133,20 @@ def on_property_modified(props, property, settings):
 	return True
 
 def script_properties():
-	has_output = streaming_output != streaming_output_options[0] or recording_output != recording_output_options[0]
+	has_output = True #streaming_output != streaming_output_options[0] or recording_output != recording_output_options[0]
 	props = obs.obs_properties_create()
 
-	p = obs.obs_properties_add_list(props, "streaming_output", "Streaming Output", obs.OBS_COMBO_TYPE_LIST, obs.OBS_COMBO_FORMAT_STRING)
-	obs.obs_property_set_modified_callback(p, on_property_modified)
-	for option in streaming_output_options:
-		obs.obs_property_list_add_string(p, option, option)
+	group = obs.obs_properties_create()
+	for i, option in enumerate(streaming_output):
+		p = obs.obs_properties_add_bool(group, 'streaming_output_' + str(i), option['name'])
+		obs.obs_property_set_modified_callback(p, on_property_modified)
+	obs.obs_properties_add_group(props, "streaming_output", "Streaming Output", obs.OBS_GROUP_NORMAL, group)
 
-	p = obs.obs_properties_add_list(props, "recording_output", "Recording Output", obs.OBS_COMBO_TYPE_LIST, obs.OBS_COMBO_FORMAT_STRING)
-	obs.obs_property_set_modified_callback(p, on_property_modified)
-	for option in recording_output_options:
-		obs.obs_property_list_add_string(p, option, option)
+	group = obs.obs_properties_create()
+	for i, option in enumerate(recording_output):
+		p = obs.obs_properties_add_bool(group, 'recording_output_' + str(i), option['name'])
+		obs.obs_property_set_modified_callback(p, on_property_modified)
+	obs.obs_properties_add_group(props, "recording_output", "Recording Output", obs.OBS_GROUP_NORMAL, group)
 
 	p = obs.obs_properties_add_list(props, "copy_to_clipboard", "Copy To Clipboard", obs.OBS_COMBO_TYPE_LIST, obs.OBS_COMBO_FORMAT_STRING)
 	obs.obs_property_set_enabled(p, has_output)
@@ -164,8 +178,11 @@ def script_properties():
 	return props
 
 def script_defaults(settings):
-	obs.obs_data_set_default_string(settings, "streaming_output", streaming_output)
-	obs.obs_data_set_default_string(settings, "recording_output", recording_output)
+	for i, option in enumerate(streaming_output):
+		obs.obs_data_set_default_bool(settings, "streaming_output_" + str(i), option['value'])
+
+	for i, option in enumerate(recording_output):
+		obs.obs_data_set_default_bool(settings, "recording_output_" + str(i), option['value'])
 
 	obs.obs_data_set_default_string(settings, "copy_to_clipboard", copy_to_clipboard)
 	obs.obs_data_set_default_int(settings, "key_moment_lead_in", key_moment_lead_in)
@@ -176,9 +193,12 @@ def script_description():
 
 def script_update(settings):
 	global streaming_output
-	streaming_output = obs.obs_data_get_string(settings, "streaming_output")
+	for i, option in enumerate(streaming_output):
+		streaming_output[i]['value'] = obs.obs_data_get_bool(settings, "streaming_output_" + str(i))
+
 	global recording_output
-	recording_output = obs.obs_data_get_string(settings, "recording_output")
+	for i, option in enumerate(recording_output):
+		recording_output[i]['value'] = obs.obs_data_get_bool(settings, "recording_output_" + str(i))
 	
 	global copy_to_clipboard
 	copy_to_clipboard = obs.obs_data_get_string(settings, "copy_to_clipboard")
