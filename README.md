@@ -2,5 +2,5 @@
 An OBS script to keep track of timestamped key moments.
 
 # Dependancies
-pip install pyperclip
+pip install pyperclip<br/>
 pip install win10toast
