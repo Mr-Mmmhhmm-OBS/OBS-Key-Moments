@@ -5,7 +5,7 @@ import pyperclip as clipboard
 from win10toast import ToastNotifier
 toaster = ToastNotifier()
 
-version=2.0
+version=2.1
 
 streaming_output = ( {"name":"Copy To Clipboard", "value":True }, {"name":"Console", "value":True }, ) # , "YouTube"
 streaming = None
@@ -121,6 +121,7 @@ def get_has_output(options):
 
 def on_property_modified(props, property, settings):
 	has_output = get_has_output(streaming_output) or get_has_output(recording_output)
+	# TODO: Code propper exclusivity
 	obs.obs_property_set_enabled(obs.obs_properties_get(props, "recording_output_0"), not streaming_output[0]['value'])
 	obs.obs_property_set_enabled(obs.obs_properties_get(props, "streaming_output_0"), not recording_output[0]['value'])
 
