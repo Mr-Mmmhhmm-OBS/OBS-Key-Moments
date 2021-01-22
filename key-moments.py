@@ -6,24 +6,11 @@ import pyperclip as clipboard
 from win10toast import ToastNotifier
 toaster = ToastNotifier()
 
-# -*- coding: utf-8 -*-
-# Sample Python code for youtube.liveStreams.update
-# See instructions for running these code samples locally:
-# https://developers.google.com/explorer-help/guides/code_samples#python
-import os
-import google_auth_oauthlib.flow
-import googleapiclient.discovery
-import googleapiclient.errors
-
-scopes = ["https://www.googleapis.com/auth/youtube"]
-
-version=2.1
+version=2.2
 
 OUTPUT_OPTION_CLIPBOARD = "Copy To Clipboard"
 OUTPUT_OPTION_CONSOLE = "Console"
 OUTPUT_OPTION_FILE = "Save To File"
-
-YOUTUBE_DEVELOPER_KEY = "99730038784-1esj3gnhrebbldietubd6hdcklss9aqf.apps.googleusercontent.com"
 
 streaming_output = ( {"name":OUTPUT_OPTION_CLIPBOARD, "value":True }, {"name":OUTPUT_OPTION_CONSOLE, "value":True }, {"name":OUTPUT_OPTION_FILE, "value":True }, )
 streaming = None
