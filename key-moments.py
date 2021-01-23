@@ -100,12 +100,12 @@ def on_event(event):
 	global recording
 	if event == obs.OBS_FRONTEND_EVENT_STREAMING_STARTED and get_has_output(streaming_output):
 		if len(key_moment_names) == 0:
-			make_toast("Warning!\n\nYou cannot record key-moments without items in the key moment name list!")
+			raise Exception("You cannot record key-moments without items in the key moment name list!")
 		else:
 			streaming = { 'start_time': time.time(), 'key_moments': [ [ description ], [], [ 0, key_moment_names[0] ] ] }
 	elif event == obs.OBS_FRONTEND_EVENT_RECORDING_STARTED and get_has_output(recording_output):
 		if len(key_moment_names) == 0:
-			make_toast("Warning!\n\nYou cannot record key-moments without items in the key moment name list!")
+			raise Exception("You cannot record key-moments without items in the key moment name list!")
 		else:		
 			recording = { 'start_time': time.time(), 'key_moments': [ [ description ], [], [ 0, key_moment_names[0] ] ] }
 	elif event == obs.OBS_FRONTEND_EVENT_STREAMING_STOPPED and streaming != None:
