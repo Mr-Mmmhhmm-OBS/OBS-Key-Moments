@@ -12,10 +12,10 @@ OUTPUT_OPTION_CLIPBOARD = "Copy To Clipboard"
 OUTPUT_OPTION_CONSOLE = "Console"
 OUTPUT_OPTION_FILE = "Save To File"
 
-streaming_output = ( {"name":OUTPUT_OPTION_CLIPBOARD, "value":True }, {"name":OUTPUT_OPTION_CONSOLE, "value":True }, {"name":OUTPUT_OPTION_FILE, "value":True }, )
+streaming_output = { OUTPUT_OPTION_CLIPBOARD:{ "value":True, 'exclusive':True }, OUTPUT_OPTION_CONSOLE:{ "value":True }, OUTPUT_OPTION_FILE:{ "value":True }, }
 streaming = None
 
-recording_output = ( { "name":OUTPUT_OPTION_CLIPBOARD, "value":False }, { "name":OUTPUT_OPTION_CONSOLE, "value":True }, {"name":OUTPUT_OPTION_FILE, "value":True }, ) # , "File"
+recording_output = { OUTPUT_OPTION_CLIPBOARD:{ "value":False, 'exclusive':True }, OUTPUT_OPTION_CONSOLE:{ "value":True }, OUTPUT_OPTION_FILE:{ "value":True }, }
 recording = None
 
 file_folder = None
@@ -84,14 +84,14 @@ def update_key_moments(obj, scene_name):
 
 def execute_output(output_options, type, message):
 	for option in output_options:
-		if option['value']:
-			if option['name'] == OUTPUT_OPTION_CLIPBOARD:
+		if output_options[option]['value']:
+			if option == OUTPUT_OPTION_CLIPBOARD:
 				clipboard.copy(message)
 				make_toast("The key-moments from your " + type.lower() + " have been copied to your clipboard.")
-			if option['name'] == OUTPUT_OPTION_CONSOLE:
+			if option == OUTPUT_OPTION_CONSOLE:
 				print("\n" + type + " Key Moments\n")
 				print(message)
-			if option['name'] == OUTPUT_OPTION_FILE:
+			if option == OUTPUT_OPTION_FILE:
 				save_to_file(message)
 				
 def on_event(event):
@@ -147,18 +147,17 @@ def add_key_moment_list(p, required):
 
 def get_has_output(options):
 	for option in options:
-		if option['value'] == True:
+		if options[option]['value'] == True:
 			return True
 	return False
 
 def on_property_modified(props, property, settings):
+	obs.obs_property_set_enabled(obs.obs_properties_get(props, "recording_output_" + OUTPUT_OPTION_CLIPBOARD), not streaming_output[OUTPUT_OPTION_CLIPBOARD]['value'])
+	obs.obs_property_set_enabled(obs.obs_properties_get(props, "streaming_output_" + OUTPUT_OPTION_CLIPBOARD), not recording_output[OUTPUT_OPTION_CLIPBOARD]['value'])
 	has_output = get_has_output(streaming_output) or get_has_output(recording_output)
-	# TODO: Code proper exclusivity
-	obs.obs_property_set_enabled(obs.obs_properties_get(props, "recording_output_0"), not streaming_output[0]['value'])
-	obs.obs_property_set_enabled(obs.obs_properties_get(props, "streaming_output_0"), not recording_output[0]['value'])
-
-	obs.obs_property_set_visible(obs.obs_properties_get(props, "file_folder"), streaming_output[2]['value'] or recording_output[2]['value'])
-	obs.obs_property_set_visible(obs.obs_properties_get(props, "file_name"), streaming_output[2]['value'] or recording_output[2]['value'])
+	
+	obs.obs_property_set_visible(obs.obs_properties_get(props, "file_folder"), streaming_output[OUTPUT_OPTION_FILE]['value'] or recording_output[OUTPUT_OPTION_FILE]['value'])
+	obs.obs_property_set_visible(obs.obs_properties_get(props, "file_name"), streaming_output[OUTPUT_OPTION_FILE]['value'] or recording_output[OUTPUT_OPTION_FILE]['value'])
 	obs.obs_property_set_enabled(obs.obs_properties_get(props, "key_moment_lead_in"), has_output)
 	obs.obs_property_set_enabled(obs.obs_properties_get(props, "min_key_moment_duration"), has_output)
 	obs.obs_property_set_enabled(obs.obs_properties_get(props, "description"), has_output)
@@ -171,22 +170,22 @@ def script_properties():
 	props = obs.obs_properties_create()
 
 	group = obs.obs_properties_create()
-	for i, option in enumerate(streaming_output):
-		p = obs.obs_properties_add_bool(group, 'streaming_output_' + str(i), option['name'])
+	for key in streaming_output:
+		p = obs.obs_properties_add_bool(group, 'streaming_output_' + str(key), key)
 		obs.obs_property_set_modified_callback(p, on_property_modified)
 	obs.obs_properties_add_group(props, "streaming_output", "Streaming Output", obs.OBS_GROUP_NORMAL, group)
 
 	group = obs.obs_properties_create()
-	for i, option in enumerate(recording_output):
-		p = obs.obs_properties_add_bool(group, 'recording_output_' + str(i), option['name'])
+	for key in recording_output:
+		p = obs.obs_properties_add_bool(group, 'recording_output_' + str(key), key)
 		obs.obs_property_set_modified_callback(p, on_property_modified)
 	obs.obs_properties_add_group(props, "recording_output", "Recording Output", obs.OBS_GROUP_NORMAL, group)
 
 	p = obs.obs_properties_add_path(props, "file_folder", "File Folder", obs.OBS_PATH_DIRECTORY, None, None)
-	obs.obs_property_set_visible(p, streaming_output[2]['value'] or recording_output[2]['value'])
+	obs.obs_property_set_visible(p, streaming_output[OUTPUT_OPTION_FILE]['value'] or recording_output[OUTPUT_OPTION_FILE]['value'])
 
 	p = obs.obs_properties_add_text(props, "file_name", "File Name", obs.OBS_TEXT_DEFAULT)
-	obs.obs_property_set_visible(p, streaming_output[2]['value'] or recording_output[2]['value'])
+	obs.obs_property_set_visible(p, streaming_output[OUTPUT_OPTION_FILE]['value'] or recording_output[OUTPUT_OPTION_FILE]['value'])
 
 	p = obs.obs_properties_add_int_slider(props, "key_moment_lead_in", "Key Moment Lead In", 0, 10, 1)
 	obs.obs_property_set_enabled(p, has_output)
@@ -213,11 +212,11 @@ def script_properties():
 	return props
 
 def script_defaults(settings):
-	for i, option in enumerate(streaming_output):
-		obs.obs_data_set_default_bool(settings, "streaming_output_" + str(i), option['value'])
+	for key in streaming_output:
+		obs.obs_data_set_default_bool(settings, "streaming_output_" + str(key), streaming_output[key]['value'])
 
-	for i, option in enumerate(recording_output):
-		obs.obs_data_set_default_bool(settings, "recording_output_" + str(i), option['value'])
+	for key in recording_output:
+		obs.obs_data_set_default_bool(settings, "recording_output_" + str(key), recording_output[key]['value'])
 	
 	obs.obs_data_set_default_string(settings, "file_name", file_name)
 	
@@ -229,12 +228,12 @@ def script_description():
 
 def script_update(settings):
 	global streaming_output
-	for i, option in enumerate(streaming_output):
-		streaming_output[i]['value'] = obs.obs_data_get_bool(settings, "streaming_output_" + str(i))
+	for key in streaming_output:
+		streaming_output[key]['value'] = obs.obs_data_get_bool(settings, "streaming_output_" + str(key))
 
 	global recording_output
-	for i, option in enumerate(recording_output):
-		recording_output[i]['value'] = obs.obs_data_get_bool(settings, "recording_output_" + str(i))
+	for key in recording_output:
+		recording_output[key]['value'] = obs.obs_data_get_bool(settings, "recording_output_" + str(key))
 
 	global file_folder
 	file_folder = obs.obs_data_get_string(settings, "file_folder")
