@@ -6,7 +6,7 @@ import pyperclip as clipboard
 from win10toast import ToastNotifier
 toaster = ToastNotifier()
 
-version=2.2
+version="2.3"
 
 OUTPUT_OPTION_CLIPBOARD = "Copy To Clipboard"
 OUTPUT_OPTION_CONSOLE = "Console"
@@ -25,7 +25,7 @@ key_moment_lead_in = 2
 min_key_moment_duration = 60
 
 description = ""
-key_moment_names = [ "Opening", "Closing" ]
+key_moment_names = [ ]
 key_scenes = { }
 
 def make_toast(message):
@@ -225,7 +225,7 @@ def script_defaults(settings):
 	obs.obs_data_set_default_int(settings, "min_key_moment_duration", min_key_moment_duration)
 
 def script_description():
-	return "Creates a list of 'Key Moment' time-stamps during the event.\nv" + str(version)
+	return "Creates a list of 'Key Moment' time-stamps during the event.\nhttps://github.com/Mr-Mmhhmm-OBS/OBS-Key-Moments\nv" + version
 
 def script_update(settings):
 	global streaming_output
