@@ -7,7 +7,7 @@ import pyperclip as clipboard
 from win10toast import ToastNotifier
 toaster = ToastNotifier()
 
-version="2.3"
+version="2.4"
 
 OUTPUT_OPTION_CLIPBOARD = "Copy To Clipboard"
 OUTPUT_OPTION_CONSOLE = "Console"
