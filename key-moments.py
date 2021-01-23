@@ -1,4 +1,5 @@
 import obspython as obs
+import os
 import time
 import math
 from datetime import datetime
@@ -31,7 +32,7 @@ key_scenes = { }
 def make_toast(message):
 	toaster.show_toast("OBS Key Moments", message, duration=10, threaded=True, icon_path=script_path()+"/obs-icon-small.ico")
 
-def save_to_file(message):
+def save_to_file(type, message):
 	if file_folder != None and len(file_name) > 0:
 		path = file_folder + "/" + datetime.now().strftime(file_name) + ".txt"
 		if not os.path.exists(os.path.dirname(path)):
@@ -92,7 +93,7 @@ def execute_output(output_options, type, message):
 				print("\n" + type + " Key Moments\n")
 				print(message)
 			if option == OUTPUT_OPTION_FILE:
-				save_to_file(message)
+				save_to_file(type, message)
 				
 def on_event(event):
 	global streaming
@@ -118,6 +119,7 @@ def on_event(event):
 	elif event == obs.OBS_FRONTEND_EVENT_SCENE_CHANGED and (streaming != None or recording != None):
 		scene = obs.obs_frontend_get_current_scene()
 		scene_name = obs.obs_source_get_name(scene)
+		obs.obs_source_release(scene)
 		if streaming != None:
 			update_key_moments(streaming, scene_name)
 		if recording != None:
