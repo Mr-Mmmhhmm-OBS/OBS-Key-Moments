@@ -32,7 +32,7 @@ key_scenes = { }
 def make_toast(message):
 	toaster.show_toast("OBS Key Moments", message, duration=10, threaded=True, icon_path=script_path()+"/obs-icon-small.ico")
 
-def save_to_file(type, message):
+def save_to_file(output_type, message):
 	if file_folder != None and len(file_name) > 0:
 		path = file_folder + "/" + datetime.now().strftime(file_name) + ".txt"
 		if not os.path.exists(os.path.dirname(path)):
@@ -42,7 +42,7 @@ def save_to_file(type, message):
 				if exc.errno != errno.EEXIST:
 					raise
 		with open(path, "a+") as f:
-			f.write("\n" + type + " Key Moments---------------\n" + message)
+			f.write("\n" + output_type + " Key Moments\n" + message)
 	else:
 		print("Invalid Save Location!")
 
@@ -83,17 +83,17 @@ def update_key_moments(obj, scene_name):
 					obj['key_moments'].append([ timestamp, key_moment ])
 				break
 
-def execute_output(output_options, type, message):
+def execute_output(output_options, output_type, message):
 	for option in output_options:
 		if output_options[option]['value']:
 			if option == OUTPUT_OPTION_CLIPBOARD:
 				clipboard.copy(message)
-				make_toast("The key-moments from your " + type.lower() + " have been copied to your clipboard.")
+				make_toast("The key-moments from your " + output_type.lower() + " have been copied to your clipboard.")
 			if option == OUTPUT_OPTION_CONSOLE:
-				print("\n" + type + " Key Moments\n")
+				print("\n" + output_type + " Key Moments\n")
 				print(message)
 			if option == OUTPUT_OPTION_FILE:
-				save_to_file(type, message)
+				save_to_file(output_type, message)
 				
 def on_event(event):
 	global streaming
