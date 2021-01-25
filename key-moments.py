@@ -71,6 +71,7 @@ def compile_key_momemnts(obj):
 	return "\n".join(obj['key_moments'])
 
 def update_key_moments(obj, scene_name):
+	print(key_scenes)
 	if len(obj['key_moments']) > 0 and key_scenes[scene_name] != "" and obj['key_moments'][len(obj['key_moments'])-1][1] != key_scenes[scene_name]:
 		for key_scene, key_moment in key_scenes.items():
 			if scene_name == key_scene:
@@ -98,6 +99,7 @@ def execute_output(output_options, output_type, message):
 def on_event(event):
 	global streaming
 	global recording
+
 	if event == obs.OBS_FRONTEND_EVENT_STREAMING_STARTED and get_has_output(streaming_output):
 		if len(key_moment_names) == 0:
 			raise Exception("You cannot record key-moments without items in the key moment name list!")
@@ -202,8 +204,8 @@ def script_properties():
 	grp = obs.obs_properties_create()
 	scene_names = obs.obs_frontend_get_scene_names()
 	if scene_names != None:
-		for scene_name in scene_names:
-			p = obs.obs_properties_add_list(grp, scene_name, scene_name, obs.OBS_COMBO_TYPE_LIST, obs.OBS_COMBO_FORMAT_STRING)
+		for i, scene_name in enumerate(scene_names):
+			p = obs.obs_properties_add_list(grp, "scene"+ str(i), scene_name, obs.OBS_COMBO_TYPE_LIST, obs.OBS_COMBO_FORMAT_STRING)
 			obs.obs_property_set_enabled(p, has_output)
 			add_key_moment_list(p, False)
 	obs.obs_properties_add_group(props, "key_scenes", "Key Scenes", obs.OBS_GROUP_NORMAL, grp)
@@ -229,6 +231,7 @@ def script_description():
 	return "Creates a list of 'Key Moment' time-stamps during the event.\nhttps://github.com/Mr-Mmhhmm-OBS/OBS-Key-Moments\nv" + version
 
 def script_update(settings):
+	print("script update")
 	global streaming_output
 	for key in streaming_output:
 		streaming_output[key]['value'] = obs.obs_data_get_bool(settings, "streaming_output_" + str(key))
@@ -265,12 +268,24 @@ def script_update(settings):
 
 	global key_scenes
 	key_scenes = { }
-	global scene_names
-	scene_names = obs.obs_frontend_get_scene_names()
-	if scene_names != None:
-		for scene_name in scene_names:
+	scene_name_array = obs.obs_data_get_array(settings, "scene_names")
+	if scene_name_array != None:
+		for i in range(obs.obs_data_array_count(scene_name_array)):
+			data_item = obs.obs_data_array_item(scene_name_array, i)
+			scene_name = obs.obs_data_get_string(data_item, "scene_name")
 			key_moment = obs.obs_data_get_string(settings, scene_name)
 			key_scenes[scene_name] = key_moment
+		obs.obs_data_array_release(scene_name_array)
+
+def script_save(settings):
+	scene_names = obs.obs_frontend_get_scene_names()
+	if scene_names != None:
+		array = obs.obs_data_array_create()
+		for i, scene_name in enumerate(scene_names):
+			data_item = obs.obs_data_create()
+			obs.obs_data_set_string(data_item, "scene_name", scene_name)
+			obs.obs_data_array_insert(array, i, data_item)
+		obs.obs_data_set_array(settings, "scene_names", array)
 
 def script_load(settings):
 	obs.obs_frontend_add_event_callback(on_event)
