@@ -44,7 +44,7 @@ def save_to_file(output_type, message):
 		with open(path, "a+") as f:
 			f.write("\n" + output_type + " Key Moments\n" + message)
 	else:
-		print("Invalid Save Location!")
+		raise Exception("Invalid Save Location!")
 
 def compile_key_momemnts(obj):
 	# Remove duplicate key-moments
@@ -71,7 +71,6 @@ def compile_key_momemnts(obj):
 	return "\n".join(obj['key_moments'])
 
 def update_key_moments(obj, scene_name):
-	print(key_scenes)
 	if len(obj['key_moments']) > 0 and key_scenes[scene_name] != "" and obj['key_moments'][len(obj['key_moments'])-1][1] != key_scenes[scene_name]:
 		for key_scene, key_moment in key_scenes.items():
 			if scene_name == key_scene:
@@ -91,8 +90,7 @@ def execute_output(output_options, output_type, message):
 				clipboard.copy(message)
 				make_toast("The key-moments from your " + output_type.lower() + " have been copied to your clipboard.")
 			if option == OUTPUT_OPTION_CONSOLE:
-				print("\n" + output_type + " Key Moments\n")
-				print(message)
+				print("\n" + output_type + " Key Moments\n" + message)
 			if option == OUTPUT_OPTION_FILE:
 				save_to_file(output_type, message)
 				
@@ -231,7 +229,6 @@ def script_description():
 	return "Creates a list of 'Key Moment' time-stamps during the event.\nhttps://github.com/Mr-Mmhhmm-OBS/OBS-Key-Moments\nv" + version
 
 def script_update(settings):
-	print("script update")
 	global streaming_output
 	for key in streaming_output:
 		streaming_output[key]['value'] = obs.obs_data_get_bool(settings, "streaming_output_" + str(key))
