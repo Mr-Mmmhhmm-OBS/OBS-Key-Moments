@@ -249,7 +249,7 @@ def script_update(settings):
 	min_key_moment_duration = obs.obs_data_get_int(settings, "min_key_moment_duration")
 
 	global description
-	description = obs.obs_data_get_string(settings, "description")
+	description = obs.obs_data_get_string(settings, "description").replace(u'\u200b', '*')
 
 	global key_moment_names 
 	key_moment_names = []
