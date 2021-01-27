@@ -7,7 +7,7 @@ import pyperclip as clipboard
 from win10toast import ToastNotifier
 toaster = ToastNotifier()
 
-version="2.5"
+version="2.6"
 
 OUTPUT_OPTION_CLIPBOARD = "Copy To Clipboard"
 OUTPUT_OPTION_CONSOLE = "Console"
@@ -263,6 +263,17 @@ def script_update(settings):
 			key_moment_names.append(value)
 	obs.obs_data_array_release(key_moment_name_array)
 
+	
+	scene_names = obs.obs_frontend_get_scene_names()
+	if scene_names != None and len(scene_names) > 0:
+		# Update scenename list
+		array = obs.obs_data_array_create()
+		for i, scene_name in enumerate(scene_names):
+			data_item = obs.obs_data_create()
+			obs.obs_data_set_string(data_item, "scene_name", scene_name)
+			obs.obs_data_array_insert(array, i, data_item)
+		obs.obs_data_set_array(settings, "scene_names", array)
+
 	global key_scenes
 	key_scenes = { }
 	scene_name_array = obs.obs_data_get_array(settings, "scene_names")
@@ -273,16 +284,6 @@ def script_update(settings):
 			key_moment = obs.obs_data_get_string(settings, scene_name)
 			key_scenes[scene_name] = key_moment
 		obs.obs_data_array_release(scene_name_array)
-
-def script_save(settings):
-	scene_names = obs.obs_frontend_get_scene_names()
-	if scene_names != None:
-		array = obs.obs_data_array_create()
-		for i, scene_name in enumerate(scene_names):
-			data_item = obs.obs_data_create()
-			obs.obs_data_set_string(data_item, "scene_name", scene_name)
-			obs.obs_data_array_insert(array, i, data_item)
-		obs.obs_data_set_array(settings, "scene_names", array)
 
 def script_load(settings):
 	obs.obs_frontend_add_event_callback(on_event)
