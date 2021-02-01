@@ -137,13 +137,12 @@ def key_moment_names_modified(props, property, settings):
 	if scene_names != None:
 		for scene_name in scene_names:
 			p = obs.obs_properties_get(props, scene_name)
-			add_key_moment_list(p, False)
+			add_key_moment_list(p)
 	return True
 
-def add_key_moment_list(p, required):
+def add_key_moment_list(p):
 	obs.obs_property_list_clear(p)
-	if not required:
-		obs.obs_property_list_add_string(p, "", "")
+	obs.obs_property_list_add_string(p, "", "")
 	for key_moment_name in key_moment_names:
 		obs.obs_property_list_add_string(p, key_moment_name, key_moment_name)
 
@@ -205,7 +204,7 @@ def script_properties():
 		for i, scene_name in enumerate(scene_names):
 			p = obs.obs_properties_add_list(grp, "scene"+ str(i), scene_name, obs.OBS_COMBO_TYPE_LIST, obs.OBS_COMBO_FORMAT_STRING)
 			obs.obs_property_set_enabled(p, has_output)
-			add_key_moment_list(p, False)
+			add_key_moment_list(p)
 	obs.obs_properties_add_group(props, "key_scenes", "Key Scenes", obs.OBS_GROUP_NORMAL, grp)
 
 	p = obs.obs_properties_add_text(props, "description", "Video Description", obs.OBS_TEXT_MULTILINE)
