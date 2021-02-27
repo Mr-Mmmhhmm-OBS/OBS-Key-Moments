@@ -7,16 +7,16 @@ import pyperclip as clipboard
 from win10toast import ToastNotifier
 toaster = ToastNotifier()
 
-version="2.6"
+version="2.7"
 
-OUTPUT_OPTION_CLIPBOARD = "Copy To Clipboard"
-OUTPUT_OPTION_CONSOLE = "Console"
-OUTPUT_OPTION_FILE = "Save To File"
+OUTPUT_OPTION_CLIPBOARD = "copy-to-clipboard"
+OUTPUT_OPTION_CONSOLE = "write-to-console"
+OUTPUT_OPTION_FILE = "save-to-file"
 
-streaming_output = { OUTPUT_OPTION_CLIPBOARD:{ "value":True, 'exclusive':True }, OUTPUT_OPTION_CONSOLE:{ "value":True }, OUTPUT_OPTION_FILE:{ "value":True }, }
+streaming_output = { OUTPUT_OPTION_CLIPBOARD:{ "name":"Copy To Clipboard", "value":True, 'exclusive':True }, OUTPUT_OPTION_CONSOLE:{ "name": "Write To Console", "value":True }, OUTPUT_OPTION_FILE:{ "name": "Save To File", "value":True }, }
 streaming = None
 
-recording_output = { OUTPUT_OPTION_CLIPBOARD:{ "value":False, 'exclusive':True }, OUTPUT_OPTION_CONSOLE:{ "value":True }, OUTPUT_OPTION_FILE:{ "value":True }, }
+recording_output = { OUTPUT_OPTION_CLIPBOARD:{ "name":"Copy To Clipboard", "value":False, 'exclusive':True }, OUTPUT_OPTION_CONSOLE:{ "name": "Write To Console", "value":True }, OUTPUT_OPTION_FILE:{ "name": "Save To File", "value":True }, }
 recording = None
 
 file_folder = None
@@ -172,15 +172,19 @@ def script_properties():
 
 	group = obs.obs_properties_create()
 	for key in streaming_output:
-		p = obs.obs_properties_add_bool(group, 'streaming_output_' + str(key), key)
+		p = obs.obs_properties_add_bool(group, 'streaming_output_' + str(key), streaming_output[key]['name'])
 		obs.obs_property_set_modified_callback(p, on_property_modified)
 	obs.obs_properties_add_group(props, "streaming_output", "Streaming Output", obs.OBS_GROUP_NORMAL, group)
 
 	group = obs.obs_properties_create()
 	for key in recording_output:
-		p = obs.obs_properties_add_bool(group, 'recording_output_' + str(key), key)
+		p = obs.obs_properties_add_bool(group, 'recording_output_' + str(key), recording_output[key]['name'])
 		obs.obs_property_set_modified_callback(p, on_property_modified)
 	obs.obs_properties_add_group(props, "recording_output", "Recording Output", obs.OBS_GROUP_NORMAL, group)
+
+	obs.obs_property_set_enabled(obs.obs_properties_get(props, "recording_output_" + OUTPUT_OPTION_CLIPBOARD), not streaming_output[OUTPUT_OPTION_CLIPBOARD]['value'])
+	obs.obs_property_set_enabled(obs.obs_properties_get(props, "streaming_output_" + OUTPUT_OPTION_CLIPBOARD), not recording_output[OUTPUT_OPTION_CLIPBOARD]['value'])
+	
 
 	p = obs.obs_properties_add_path(props, "file_folder", "File Folder", obs.OBS_PATH_DIRECTORY, None, None)
 	obs.obs_property_set_visible(p, streaming_output[OUTPUT_OPTION_FILE]['value'] or recording_output[OUTPUT_OPTION_FILE]['value'])
