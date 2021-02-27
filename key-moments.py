@@ -7,11 +7,11 @@ import pyperclip as clipboard
 from win10toast import ToastNotifier
 toaster = ToastNotifier()
 
-version="2.7"
+version="2.8"
 
-OUTPUT_OPTION_CLIPBOARD = "copy-to-clipboard"
-OUTPUT_OPTION_CONSOLE = "write-to-console"
-OUTPUT_OPTION_FILE = "save-to-file"
+OUTPUT_OPTION_CLIPBOARD = "copy_to_clipboard"
+OUTPUT_OPTION_CONSOLE = "write_to_console"
+OUTPUT_OPTION_FILE = "save_to_file"
 
 streaming_output = { OUTPUT_OPTION_CLIPBOARD:{ "name":"Copy To Clipboard", "value":True, 'exclusive':True }, OUTPUT_OPTION_CONSOLE:{ "name": "Write To Console", "value":True }, OUTPUT_OPTION_FILE:{ "name": "Save To File", "value":True }, }
 streaming = None
@@ -25,7 +25,6 @@ file_name = "%Y/%b %d"
 key_moment_lead_in = 2
 min_key_moment_duration = 60
 
-description = ""
 key_moment_names = [ ]
 key_scenes = { }
 
@@ -46,32 +45,30 @@ def save_to_file(output_type, message):
 	else:
 		raise Exception("Invalid Save Location!")
 
-def compile_key_momemnts(obj):
+def compile_key_momemnts(key_moments):
+	print(str(key_scenes))
+	print(str(key_moments))
+
 	# Remove duplicate key-moments
-	for i, item in enumerate(obj['key_moments']):
-		if len(item) == 2 and len(obj['key_moments'][i-1]) == 2 and obj['key_moments'][i-1][1] == item[1]:
-			del obj['key_moments'][i]
+	for i, item in enumerate(key_moments):
+		if key_moments[i-1][1] == item[1]:
+			del key_moments[i]
 	
 	# Turn each key-moment into a string
-	for i, item in enumerate(obj['key_moments']):
-		if len(item) == 2:
-			delta = item[0]
-			if item[0] > key_moment_lead_in:
-				delta = item[0] - key_moment_lead_in
+	for i, item in enumerate(key_moments):
+		delta = item[0]
+		if item[0] > key_moment_lead_in:
+			delta = item[0] - key_moment_lead_in
 
-			hh = math.floor(delta / 60 / 60)
-			mm = math.floor(delta / 60 % 60)
-			ss = math.floor(delta % 60)
+		hh = math.floor(delta / 60 / 60)
+		mm = math.floor(delta / 60 % 60)
+		ss = math.floor(delta % 60)
 
-			obj['key_moments'][i] = "{:02d}:{:02d}:{:02d} {}".format(hh, mm, ss, item[1])
-		elif len(item) == 1:
-			obj['key_moments'][i] = item[0]
-		else:
-			obj['key_moments'][i] = ""
-	return "\n".join(obj['key_moments'])
+		key_moments[i] = "{:02d}:{:02d}:{:02d} {}".format(hh, mm, ss, item[1])
+	return "\n".join(key_moments)
 
 def update_key_moments(obj, scene_name):
-	if len(obj['key_moments']) > 0 and key_scenes[scene_name] != "" and obj['key_moments'][len(obj['key_moments'])-1][1] != key_scenes[scene_name]:
+	if key_scenes[scene_name] != "" and obj['key_moments'][len(obj['key_moments'])-1][1] != key_scenes[scene_name]:
 		for key_scene, key_moment in key_scenes.items():
 			if scene_name == key_scene:
 				timestamp = time.time() - obj['start_time']
@@ -89,9 +86,9 @@ def execute_output(output_options, output_type, message):
 			if option == OUTPUT_OPTION_CLIPBOARD:
 				clipboard.copy(message)
 				make_toast("The key-moments from your " + output_type.lower() + " have been copied to your clipboard.")
-			if option == OUTPUT_OPTION_CONSOLE:
+			elif option == OUTPUT_OPTION_CONSOLE:
 				print("\n" + output_type + " Key Moments\n" + message)
-			if option == OUTPUT_OPTION_FILE:
+			elif option == OUTPUT_OPTION_FILE:
 				save_to_file(output_type, message)
 				
 def on_event(event):
@@ -102,18 +99,18 @@ def on_event(event):
 		if len(key_moment_names) == 0:
 			raise Exception("You cannot record key-moments without items in the key moment name list!")
 		else:
-			streaming = { 'start_time': time.time(), 'key_moments': [ [ description ], [], [ 0, key_moment_names[0] ] ] }
+			streaming = { 'start_time': time.time(), 'key_moments': [ [ 0, key_moment_names[0] ] ] }
 	elif event == obs.OBS_FRONTEND_EVENT_RECORDING_STARTED and get_has_output(recording_output):
 		if len(key_moment_names) == 0:
 			raise Exception("You cannot record key-moments without items in the key moment name list!")
 		else:		
-			recording = { 'start_time': time.time(), 'key_moments': [ [ description ], [], [ 0, key_moment_names[0] ] ] }
+			recording = { 'start_time': time.time(), 'key_moments': [ [ 0, key_moment_names[0] ] ] }
 	elif event == obs.OBS_FRONTEND_EVENT_STREAMING_STOPPED and streaming != None:
-		message = compile_key_momemnts(streaming)
+		message = compile_key_momemnts(streaming['key_moments'])
 		execute_output(streaming_output, "Streaming", message)
 		streaming = None
 	elif event == obs.OBS_FRONTEND_EVENT_RECORDING_STOPPED and recording != None:
-		message = compile_key_momemnts(recording)
+		message = compile_key_momemnts(recording['key_moments'])
 		execute_output(recording_output, "Recording", message)
 		recording = None
 	elif event == obs.OBS_FRONTEND_EVENT_SCENE_CHANGED and (streaming != None or recording != None):
@@ -161,7 +158,6 @@ def on_property_modified(props, property, settings):
 	obs.obs_property_set_visible(obs.obs_properties_get(props, "file_name"), streaming_output[OUTPUT_OPTION_FILE]['value'] or recording_output[OUTPUT_OPTION_FILE]['value'])
 	obs.obs_property_set_enabled(obs.obs_properties_get(props, "key_moment_lead_in"), has_output)
 	obs.obs_property_set_enabled(obs.obs_properties_get(props, "min_key_moment_duration"), has_output)
-	obs.obs_property_set_enabled(obs.obs_properties_get(props, "description"), has_output)
 	obs.obs_property_set_enabled(obs.obs_properties_get(props, "key_moment_names"), has_output)
 	obs.obs_property_set_enabled(obs.obs_properties_get(props, "key_scenes"), has_output)
 	return True
@@ -206,13 +202,10 @@ def script_properties():
 	scene_names = obs.obs_frontend_get_scene_names()
 	if scene_names != None:
 		for i, scene_name in enumerate(scene_names):
-			p = obs.obs_properties_add_list(grp, "scene"+ str(i), scene_name, obs.OBS_COMBO_TYPE_LIST, obs.OBS_COMBO_FORMAT_STRING)
+			p = obs.obs_properties_add_list(grp, "scene-" + scene_name, scene_name, obs.OBS_COMBO_TYPE_LIST, obs.OBS_COMBO_FORMAT_STRING)
 			obs.obs_property_set_enabled(p, has_output)
 			add_key_moment_list(p)
 	obs.obs_properties_add_group(props, "key_scenes", "Key Scenes", obs.OBS_GROUP_NORMAL, grp)
-
-	p = obs.obs_properties_add_text(props, "description", "Video Description", obs.OBS_TEXT_MULTILINE)
-	obs.obs_property_set_enabled(p, has_output)
 
 	return props
 
@@ -251,9 +244,6 @@ def script_update(settings):
 	global min_key_moment_duration
 	min_key_moment_duration = obs.obs_data_get_int(settings, "min_key_moment_duration")
 
-	global description
-	description = obs.obs_data_get_string(settings, "description").replace(u'\u200b', '*')
-
 	global key_moment_names 
 	key_moment_names = []
 
@@ -266,17 +256,6 @@ def script_update(settings):
 			key_moment_names.append(value)
 	obs.obs_data_array_release(key_moment_name_array)
 
-	
-	scene_names = obs.obs_frontend_get_scene_names()
-	if scene_names != None and len(scene_names) > 0:
-		# Update scenename list
-		array = obs.obs_data_array_create()
-		for i, scene_name in enumerate(scene_names):
-			data_item = obs.obs_data_create()
-			obs.obs_data_set_string(data_item, "scene_name", scene_name)
-			obs.obs_data_array_insert(array, i, data_item)
-		obs.obs_data_set_array(settings, "scene_names", array)
-
 	global key_scenes
 	key_scenes = { }
 	scene_name_array = obs.obs_data_get_array(settings, "scene_names")
@@ -284,9 +263,20 @@ def script_update(settings):
 		for i in range(obs.obs_data_array_count(scene_name_array)):
 			data_item = obs.obs_data_array_item(scene_name_array, i)
 			scene_name = obs.obs_data_get_string(data_item, "scene_name")
-			key_moment = obs.obs_data_get_string(settings, scene_name)
+			key_moment = obs.obs_data_get_string(settings, "scene-" + scene_name)
 			key_scenes[scene_name] = key_moment
 		obs.obs_data_array_release(scene_name_array)
+
+def script_save(settings):
+	scene_names = obs.obs_frontend_get_scene_names()
+	if scene_names != None:
+		# Update scenename list
+		array = obs.obs_data_array_create()
+		for i, scene_name in enumerate(scene_names):
+			data_item = obs.obs_data_create()
+			obs.obs_data_set_string(data_item, "scene_name", scene_name)
+			obs.obs_data_array_insert(array, i, data_item)
+		obs.obs_data_set_array(settings, "scene_names", array)
 
 def script_load(settings):
 	obs.obs_frontend_add_event_callback(on_event)
