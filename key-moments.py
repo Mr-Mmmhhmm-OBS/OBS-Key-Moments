@@ -6,14 +6,16 @@ from datetime import datetime
 import pyperclip as clipboard
 from win10toast import ToastNotifier
 toaster = ToastNotifier()
+import webbrowser
 
-version="2.8"
+version="2.9"
 
 OUTPUT_OPTION_CLIPBOARD = "copy_to_clipboard"
 OUTPUT_OPTION_CONSOLE = "write_to_console"
 OUTPUT_OPTION_FILE = "save_to_file"
 
 streaming_output = { OUTPUT_OPTION_CLIPBOARD:{ "name":"Copy To Clipboard", "value":True, 'exclusive':True }, OUTPUT_OPTION_CONSOLE:{ "name": "Write To Console", "value":True }, OUTPUT_OPTION_FILE:{ "name": "Save To File", "value":True }, }
+channel_id = ""
 streaming = None
 
 recording_output = { OUTPUT_OPTION_CLIPBOARD:{ "name":"Copy To Clipboard", "value":False, 'exclusive':True }, OUTPUT_OPTION_CONSOLE:{ "name": "Write To Console", "value":True }, OUTPUT_OPTION_FILE:{ "name": "Save To File", "value":True }, }
@@ -108,6 +110,8 @@ def on_event(event):
 	elif event == obs.OBS_FRONTEND_EVENT_STREAMING_STOPPED and streaming != None:
 		message = compile_key_momemnts(streaming['key_moments'])
 		execute_output(streaming_output, "Streaming", message)
+		if channel_id != "":
+			webbrowser.open("https://studio.youtube.com/channel/"+channel_id+"/videos/live")
 		streaming = None
 	elif event == obs.OBS_FRONTEND_EVENT_RECORDING_STOPPED and recording != None:
 		message = compile_key_momemnts(recording['key_moments'])
@@ -170,6 +174,7 @@ def script_properties():
 	for key in streaming_output:
 		p = obs.obs_properties_add_bool(group, 'streaming_output_' + str(key), streaming_output[key]['name'])
 		obs.obs_property_set_modified_callback(p, on_property_modified)
+	obs.obs_properties_add_text(group, "channel_id", "Channel ID", obs.OBS_TEXT_DEFAULT)
 	obs.obs_properties_add_group(props, "streaming_output", "Streaming Output", obs.OBS_GROUP_NORMAL, group)
 
 	group = obs.obs_properties_create()
@@ -228,6 +233,9 @@ def script_update(settings):
 	global streaming_output
 	for key in streaming_output:
 		streaming_output[key]['value'] = obs.obs_data_get_bool(settings, "streaming_output_" + str(key))
+	
+	global channel_id
+	channel_id = obs.obs_data_get_string(settings, "channel_id")
 
 	global recording_output
 	for key in recording_output:
